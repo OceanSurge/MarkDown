@@ -695,3 +695,17 @@ HashMap 内部实现是通过 key 的 hashcode 来确定 value 的存储位置�
 
 如果整型字面量的值在-128到127之间，那么自动装箱时不会new新的Integer对象，而是直接引用常量池中的Integer对象
 
+### 6.3、Comparable接口
+
+继承Comparable接口，并重写compareTo方法
+
+```java
+	@Override
+	public int compareTo(Student o) {
+		if(this.score<o.score) return -1;
+		else if(this.score>o.score) return 1;
+		else return 0;
+	}
+
+```
+
