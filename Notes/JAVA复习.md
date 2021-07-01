@@ -852,5 +852,227 @@ public static void main(String[] args) {
 - 在Java中是区分大小写的，而且还要求首位不能是数字。
 - Java关键字不能当作Java标识符。
 
+## 7.13、JVM内存
+
+![image-20210701195905706](../assets/JAVA复习/image-20210701195905706.png)
+
+![image-20210701195555384](../assets/JAVA复习/image-20210701195555384.png)
+
+- **0x01:程序计数器（Program Counter Register）**
+  - 程序计数器（Program Counter Register）是一块较小的内存空间，它可以看作是当前线程所执行的字节码的行号指示器。
+  - 每个线程都有独立的程序计数器，用来在线程切换后能恢复到正确的执行位置，各条线程之间的计数器互不影响，独立存储。
+  - 此内存区域是唯一一个在JVM规范中没有规定任何OutOfMemoryError情况的区域。
+
+- **0x02:虚拟机栈（VM Stack）**
+  - 它描述的是java方法执行的内存模型，每个方法执行的同时都会创建一个栈帧（Stack Frame）用于存储局部变量表、操作数栈、动态链接、方法出口等信息。
+  - 每个方法从调用直至完成的过程，都对应着一个栈帧从入栈到出栈的过程。
+  - 每当一个方法执行完成时，该栈帧就会弹出栈帧的元素作为这个方法的返回值，并且清除这个栈帧。
+  - 如果线程请求的栈深度大于虚拟机允许的深度，将抛出StackOverflowError异常；如果虚拟机栈可以动态扩展，在扩展时无法申请到足够的内存，就会抛出OutOfMemoryError异常。
+
+- **0x03:本地方法栈（ Native Method Stack）**
+  - 本地方法栈为虚拟机使用到的Native方法服务。
+  - 本地方法栈也会抛出StackOverflowError和OutOfMemoryError异常。
+
+- **0x04:堆（Heap）**
+  - Heap是OOM故障最主要的发源地，它存储着几乎所有的实例对象，堆由垃圾收集器自动回收，堆区由各子线程共享使用；
+  - 通常情况下，它占用的空间是所有内存区域中最大的，但如果无节制地创建大量对象，也容易消耗完所有的空间；
+  - 堆的内存空间既可以固定大小，也可运行时动态地调整，通过参数-Xms设定初始值、-Xmx设定最大值。
+
+- **0x05:方法区（Method Area）**
+  - 用来存储已被虚拟机加载的类信息、常量、静态变量、JIT（just in time,即时编译技术）编译后的代码等数据。
+  - 运行时常量池是方法区的一部分，用于存放编译期间生成的各种字面常量和符号引用。
+  - 通过反射获取到的类型、方法名、字段名称、访问修饰符等信息就是从方法区获取到的。
+  - ![image-20210701201501425](../assets/JAVA复习/image-20210701201501425.png)
+
+## 7.14、包引入
+
+- java.lang包是java语言包，是自动导入的。
+- java.util包是java的工具包，需要手动导入。
+- java.sql包，JDBC接口类，需要手动导入。
+- java.io;各种输入输入流，需要手动导入。
+
+## 7.15、线程
+
+- 线程和进程一样分为五个阶段：创建、就绪、运行、阻塞、终止。
+- main方法其实也是一个线程。在java中所以的线程都是同时启动的，至于什么时候，哪个先执行，完全看谁先得到CPU的资源。
+- 在java中，每次程序运行至少启动2个线程。一个是main线程，一个是垃圾收集线程。因为每当使用java命令执行一个类的时候，实际上都会启动一个JVM，每一个JVM实习在就是在操作系统中启动了一个进程。
+
+### 7.15.1、线程实现两种方式
+
+#### 7.15.1.1、继承Thread类
+
+```java
+package com.multithread.learning;
+/**
+ *继承Thread类
+ */
+class Thread1 extends Thread{
+	private String name;
+    public Thread1(String name) {
+       this.name=name;
+    }
+	public void run() {
+        for (int i = 0; i < 5; i++) {
+            System.out.println(name + "运行  :  " + i);
+            try {
+                sleep((int) Math.random() * 10);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+       
+	}
+}
+public class Main {
+ 
+	public static void main(String[] args) {
+		Thread1 mTh1=new Thread1("A");
+		Thread1 mTh2=new Thread1("B");
+		mTh1.start();
+		mTh2.start();
+ 
+	}
+ 
+}
+```
+
+#### 7.15.1.2、实现Runnable接口
+
+```java
+/**
+ *实现Runnable接口
+ */
+package com.multithread.runnable;
+class Thread2 implements Runnable{
+	private String name;
+ 
+	public Thread2(String name) {
+		this.name=name;
+	}
+ 
+	@Override
+	public void run() {
+		  for (int i = 0; i < 5; i++) {
+	            System.out.println(name + "运行  :  " + i);
+	            try {
+	            	Thread.sleep((int) Math.random() * 10);
+	            } catch (InterruptedException e) {
+	                e.printStackTrace();
+	            }
+	        }
+		
+	}
+	
+}
+public class Main {
+ 
+	public static void main(String[] args) {
+		new Thread(new Thread2("C")).start();
+		new Thread(new Thread2("D")).start();
+	}
+ 
+}
+```
+
+### 7.15.2、Thread和Runnable的区别
+
+实现Runnable接口比继承Thread类所具有的优势：
+
+- 适合多个相同的程序代码的线程去处理同一个资源
+
+- 可以避免java中的单继承的限制
+
+- 增加程序的健壮性，代码可以被多个线程共享，代码和数据独立
+
+- 线程池只能放入实现Runable或callable类线程，不能直接放入继承Thread的类
+
+### 7.15.3、线程状态转换
+
+![image-20210701204306027](../assets/JAVA复习/image-20210701204306027.png)
+
+- 新建状态（New）：新创建了一个线程对象。
+- 就绪状态（Runnable）：线程对象创建后，其他线程调用了该对象的start()方法。该状态的线程位于可运行线程池中，变得可运行，等待获取CPU的使用权。
+- 运行状态（Running）：就绪状态的线程获取了CPU，执行程序代码。
+- 阻塞状态（Blocked）：阻塞状态是线程因为某种原因放弃CPU使用权，暂时停止运行。直到线程进入就绪状态，才有机会转到运行状态。阻塞的情况分三种：
+  - 等待阻塞：运行的线程执行wait()方法，JVM会把该线程放入等待池中。(wait会释放持有的锁)
+  - 同步阻塞：运行的线程在获取对象的同步锁时，若该同步锁被别的线程占用，则JVM会把该线程放入锁池中。
+  - 其他阻塞：运行的线程执行sleep()或join()方法，或者发出了I/O请求时，JVM会把该线程置为阻塞状态。当sleep()状态超时、join()等待线程终止或者超时、或者I/O处理完毕时，线程重新转入就绪状态。（注意,sleep是不会释放持有的锁）
+- 死亡状态（Dead）：线程执行完了或者因异常退出了run()方法，该线程结束生命周期。
+
+### 7.15.4、线程调度
+
+1. 调整线程优先级：Java线程有优先级，优先级高的线程会获得较多的运行机会。
+
+   - Java线程的优先级用整数表示，取值范围是1~10，Thread类有以下三个静态常量：
+
+   - ```
+     static int MAX_PRIORITY
+             线程可以具有的最高优先级，取值为10。
+     static int MIN_PRIORITY
+             线程可以具有的最低优先级，取值为1。
+     static int NORM_PRIORITY
+             分配给线程的默认优先级，取值为5。
+     ```
+
+2. 线程睡眠：Thread.sleep(long millis)方法，使线程转到阻塞状态。millis参数设定睡眠的时间，以毫秒为单位。当睡眠结束后，就转为就绪（Runnable）状态。
+
+3. 线程等待：Object类中的wait()方法，导致当前的线程等待，直到其他线程调用此对象的 notify() 方法或 notifyAll() 唤醒方法。这个两个唤醒方法也是Object类中的方法，行为等价于调用 wait(0) 一样。释放锁资源。
+
+4. 线程让步：Thread.yield() 方法，暂停当前正在执行的线程对象，把执行机会让给相同或者更高优先级的线程。
+
+5. 线程加入：join()方法，等待其他线程终止。在当前线程中调用另一个线程的join()方法，则当前线程转入阻塞状态，直到另一个进程运行结束，当前线程再由阻塞转为就绪状态。释放锁资源。
+
+6. 线程唤醒：Object类中的notify()方法，唤醒在此对象监视器上等待的单个线程。如果所有线程都在此对象上等待，则会选择唤醒其中一个线程。选择是任意性的，并在对实现做出决定时发生。类似的方法还有一个notifyAll()，唤醒在此对象监视器上等待的所有线程。
+
+## 7.16、Java集合
+
+![集合](../assets/JAVA复习/集合.png)
+
+### 7.16.1、Collection接口
+
+#### 7.16.1.1、List
+
+- ArrayList
+  **优点:** 底层数据结构是数组，查询快，增删慢。
+  **缺点:** 线程不安全，效率高
+- Vector
+  **优点:** 底层数据结构是数组，查询快，增删慢。
+  **缺点:** 线程安全，效率低
+- LinkedList
+  **优点:** 底层数据结构是链表，查询慢，增删快。
+  **缺点:** 线程不安全，效率高
+
+#### 7.16.1.2、Set
+
+- HashSet
+  底层数据结构是哈希表。(无序,唯一)
+  如何来保证元素唯一性?
+  1.依赖两个方法：hashCode()和equals()
+
+- LinkedHashSet
+  底层数据结构是链表和哈希表。(FIFO插入有序,唯一)
+  1.由链表保证元素有序
+  2.由哈希表保证元素唯一
+
+- TreeSet
+  底层数据结构是红黑树。(唯一，有序)
+  1. 如何保证元素排序的呢?
+     自然排序
+     比较器排序
+  2. 如何保证元素唯一性的呢?
+     根据比较的返回值是否是0来决定
+
+### 7.16.2、Map接口
+
+- HashMap
+  1. 无序
+  2. 非线程安全
+- TreeMap
+  1. 有序
+  2. 非线程安全
+- HashTable
+  1. 无序
+  2. 线程安全
+
 
 
